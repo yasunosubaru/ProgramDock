@@ -1,0 +1,420 @@
+<Window x:Class="ProgramDock.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ProgramDock"
+        Width="900"
+        Height="650"
+        MinWidth="800"
+        MinHeight="600"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        WindowState="Normal"
+        WindowStartupLocation="Manual"
+        Topmost="True"
+        ShowInTaskbar="False"
+        AllowsTransparency="False"
+        Background="#FF0B1018"
+        TextOptions.TextFormattingMode="Display"
+        Loaded="OnLoaded"
+        Closing="OnClosing"
+        PreviewKeyDown="OnPreviewKeyDown"
+        PreviewMouseWheel="OnPreviewMouseWheel"
+        MouseLeftButtonDown="OnWindowMouseLeftButtonDown">
+
+    <Window.Resources>
+        <Style x:Key="ProgramTileBorder" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource TileBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="#293A4D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                    <Setter Property="Background" Value="#263D4C" />
+                    <Setter Property="BorderBrush" Value="#61D0AA" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="FavoriteToggle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="Content" Value="☆" />
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Content" Value="★" />
+                    <Setter Property="Foreground" Value="#FFD98A" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{StaticResource WindowBackgroundBrush}"
+            BorderBrush="#26374A"
+            BorderThickness="1"
+            CornerRadius="22"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30"
+                              ShadowDepth="8"
+                              Opacity="0.45"
+                              Color="#000000" />
+        </Border.Effect>
+        <Grid x:Name="ContentGrid"
+              Width="680"
+              Height="620"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top"
+              Margin="42,28,42,24"
+              ClipToBounds="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header: the left transparent area is a dedicated drag hit zone. -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0"
+                        Background="Transparent"
+                        MouseLeftButtonDown="OnTitleBarMouseLeftButtonDown">
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Border Width="46"
+                                Height="46"
+                                CornerRadius="14"
+                                Background="#267A65"
+                                BorderBrush="#61D0AA"
+                                BorderThickness="1">
+                            <TextBlock Text="Q"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="27"
+                                       FontWeight="Bold"
+                                       Foreground="#EFFFF9" />
+                        </Border>
+                        <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="ProgramDock"
+                                       FontSize="23"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="全盘程序启动器"
+                                       Margin="0,3,0,0"
+                                       FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock Text="⋮⋮  拖动窗口"
+                                       Margin="0,2,0,0"
+                                       FontSize="9"
+                                       Foreground="#6F879D" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <StackPanel Grid.Column="1"
+                            Width="360"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusDot"
+                             Width="8"
+                             Height="8"
+                             Margin="0,0,8,0"
+                             Fill="#66D9B0" />
+                    <TextBlock x:Name="ScanStatusText"
+                               Text="准备就绪"
+                               Width="120"
+                               TextTrimming="CharacterEllipsis"
+                               Margin="0,0,12,0"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}" />
+                    <Button Content="设置"
+                            MinWidth="58"
+                            Click="OnSettingsClick" />
+                    <Button Content="最小化"
+                            MinWidth="64"
+                            Margin="6,0,0,0"
+                            Click="OnMinimizeClick" />
+                    <Button Content="退出"
+                            MinWidth="54"
+                            Margin="6,0,0,0"
+                            Click="OnExitClick" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Search -->
+            <Grid Grid.Row="1" Margin="0,24,0,0">
+                <Button x:Name="RescanButton"
+                        Width="106"
+                        Height="56"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Content="重新扫描"
+                        Click="OnRescanClick" />
+                <Border Height="56"
+                        Margin="0,0,118,0"
+                        Background="#DD172331"
+                        BorderBrush="#3B5068"
+                        BorderThickness="1"
+                        CornerRadius="16">
+                    <Grid>
+                        <TextBlock Text="⌕"
+                                   Margin="20,0,0,1"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   FontSize="27"
+                                   Foreground="{StaticResource AccentStrongBrush}" />
+                        <TextBox x:Name="SearchBox"
+                                 Margin="55,0,48,0"
+                                 Padding="0"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="18"
+                                 Foreground="{StaticResource TextPrimaryBrush}"
+                                 CaretBrush="{StaticResource AccentStrongBrush}"
+                                 TextChanged="OnSearchTextChanged"
+                                 KeyDown="OnSearchKeyDown" />
+                        <TextBlock x:Name="SearchHint"
+                                   Margin="57,1,0,0"
+                                   VerticalAlignment="Center"
+                                   FontSize="17"
+                                   Foreground="#718096"
+                                   IsHitTestVisible="False"
+                                   Text="搜索程序名称、路径或命令" />
+                        <Button x:Name="ClearSearchButton"
+                                Width="30"
+                                Height="30"
+                                Padding="0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Margin="0,0,12,0"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                FontSize="20"
+                                Content="×"
+                                Visibility="Collapsed"
+                                Click="OnClearSearchClick" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Filters and progress -->
+            <Grid Grid.Row="2" Margin="0,17,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel x:Name="FilterPanel" Orientation="Horizontal">
+                    <Button x:Name="AllFilterButton"
+                            Tag="All"
+                            Content="全部"
+                            MinWidth="58"
+                            Click="OnFilterClick" />
+                    <Button x:Name="DirectFilterButton"
+                            Tag="Direct"
+                            Content="直接使用"
+                            MinWidth="76"
+                            Margin="8,0,0,0"
+                            Click="OnFilterClick" />
+                    <Button x:Name="SystemFilterButton"
+                            Tag="System"
+                            Content="系统/辅助"
+                            MinWidth="86"
+                            Margin="8,0,0,0"
+                            Click="OnFilterClick" />
+                    <Button x:Name="FavoritesFilterButton"
+                            Tag="Favorites"
+                            Content="收藏"
+                            MinWidth="58"
+                            Margin="8,0,0,0"
+                            Click="OnFilterClick" />
+                    <Button x:Name="RecentFilterButton"
+                            Tag="Recent"
+                            Content="最近使用"
+                            MinWidth="76"
+                            Margin="8,0,0,0"
+                            Click="OnFilterClick" />
+                    <TextBlock x:Name="FilterDescription"
+                               Margin="14,0,0,0"
+                               VerticalAlignment="Center"
+                               FontSize="11"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Text="默认隐藏系统组件；右键可手动修正分类" />
+                </StackPanel>
+                <ProgressBar x:Name="ScanProgress"
+                             Grid.Row="1"
+                             Margin="0,12,0,0"
+                             IsIndeterminate="True"
+                             Visibility="Collapsed" />
+            </Grid>
+
+            <!-- Program grid -->
+            <Grid Grid.Row="3" Margin="0,17,0,0">
+                <ScrollViewer x:Name="GridScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              HorizontalContentAlignment="Stretch"
+                              CanContentScroll="False">
+                    <ItemsControl x:Name="ProgramItemsControl"
+                                  HorizontalAlignment="Stretch">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid x:Name="ProgramItemsPanel" Columns="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Width="104"
+                                      Height="128"
+                                      Margin="2">
+                                    <Border x:Name="TileBorder"
+                                            Style="{StaticResource ProgramTileBorder}" />
+                                    <Button Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0"
+                                            Cursor="Hand"
+                                            Click="OnProgramClick"
+                                            ToolTip="{Binding Path}">
+                                        <StackPanel HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                            <Grid Width="60"
+                                                  Height="60"
+                                                  HorizontalAlignment="Center">
+                                                <Border Background="#203044"
+                                                        BorderBrush="#3A536B"
+                                                        BorderThickness="1"
+                                                        CornerRadius="15" />
+                                                <TextBlock Text="Q"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="25"
+                                                           FontWeight="Bold"
+                                                           Foreground="#5A7895" />
+                                                <Image Source="{Binding Icon}"
+                                                       Width="52"
+                                                       Height="52"
+                                                       Stretch="Uniform"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center" />
+                                            </Grid>
+                                            <TextBlock Text="{Binding Name}"
+                                                       Width="94"
+                                                       Margin="0,6,0,0"
+                                                       HorizontalAlignment="Center"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Name}" />
+                                            <TextBlock Text="{Binding CategoryLabel}"
+                                                       Margin="0,2,0,0"
+                                                       FontSize="9"
+                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding CategoryReason}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <ToggleButton x:Name="FavoriteButton"
+                                                  Width="24"
+                                                  Height="24"
+                                                  Padding="0"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Top"
+                                                  Margin="0,7,7,0"
+                                                  Background="#CC111B28"
+                                                  BorderBrush="#40556B"
+                                                  FontSize="14"
+                                                  Style="{StaticResource FavoriteToggle}"
+                                                  IsChecked="{Binding IsFavorite, Mode=TwoWay}"
+                                                  Click="OnFavoriteClick"
+                                                  ToolTip="收藏" />
+                                    <Grid.ContextMenu>
+                                        <ContextMenu DataContext="{Binding}">
+                                            <MenuItem Header="启动" Click="OnContextLaunchClick" />
+                                            <MenuItem Header="收藏/取消收藏" Click="OnContextFavoriteClick" />
+                                            <Separator />
+                                            <MenuItem Header="归为直接使用" Click="OnContextMarkDirectClick" />
+                                            <MenuItem Header="归为系统/辅助" Click="OnContextMarkSystemClick" />
+                                            <MenuItem Header="恢复自动分类" Click="OnContextResetCategoryClick" />
+                                            <Separator />
+                                            <MenuItem Header="打开所在文件夹" Click="OnContextFolderClick" />
+                                            <MenuItem Header="复制完整路径" Click="OnContextCopyClick" />
+                                            <MenuItem Header="从索引中隐藏" Click="OnContextHideClick" />
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <Border x:Name="EmptyState"
+                        Visibility="Collapsed"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="30"
+                        CornerRadius="18"
+                        Background="#CC131E2B"
+                        BorderBrush="#30445A"
+                        BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="没有找到匹配的程序"
+                                   HorizontalAlignment="Center"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <TextBlock x:Name="EmptyStateDetail"
+                                   Margin="0,9,0,0"
+                                   HorizontalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Text="试试其他关键词，或点击“重新扫描”更新索引。" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Footer / pagination -->
+            <Grid Grid.Row="4" Margin="0,15,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="双击或 Enter 启动 · Esc 隐藏窗口 · F5 重新扫描"
+                           VerticalAlignment="Center"
+                           FontSize="11"
+                           Foreground="{StaticResource TextMutedBrush}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="PreviousPageButton"
+                            Content="‹"
+                            Width="34"
+                            Height="30"
+                            Padding="0"
+                            FontSize="20"
+                            Click="OnPreviousPageClick" />
+                    <TextBlock x:Name="PageText"
+                               MinWidth="86"
+                               Margin="10,0"
+                               VerticalAlignment="Center"
+                               FontSize="12"
+                               TextAlignment="Center"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Text="1 / 1" />
+                    <Button x:Name="NextPageButton"
+                            Content="›"
+                            Width="34"
+                            Height="30"
+                            Padding="0"
+                            FontSize="20"
+                            Click="OnNextPageClick" />
+                </StackPanel>
+                <TextBlock x:Name="ResultCountText"
+                           Grid.Column="2"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           FontSize="11"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           Text="0 个程序" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

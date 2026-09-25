@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: programdock-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish Windows x64 assets
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Restore
+        run: dotnet restore .\ProgramDock.sln
+
+      - name: Build Release
+        run: dotnet build .\ProgramDock.sln -c Release -p:Platform=x64 --no-restore
+
+      - name: Publish self-contained
+        run: >
+          dotnet publish .\src\ProgramDock\ProgramDock.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:Platform=x64 -p:PublishTrimmed=false
+          -p:PublishReadyToRun=false
+          -o .\artifacts\ProgramDock-selfcontained
+
+      - name: Publish framework-dependent
+        run: >
+          dotnet publish .\src\ProgramDock\ProgramDock.csproj
+          -c Release -r win-x64 --self-contained false
+          -p:Platform=x64 -p:PublishTrimmed=false
+          -o .\artifacts\ProgramDock-framework-dependent
+
+      - name: Create release assets and checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '${{ github.ref_name }}' -replace '^v', ''
+          $releaseDir = Join-Path $PWD 'artifacts\release'
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+
+          $selfContainedZip = Join-Path $releaseDir "ProgramDock-$version-win-x64-selfcontained.zip"
+          $frameworkZip = Join-Path $releaseDir "ProgramDock-$version-win-x64-framework-dependent.zip"
+          Compress-Archive -Path '.\artifacts\ProgramDock-selfcontained\*' -DestinationPath $selfContainedZip -CompressionLevel Optimal
+          Compress-Archive -Path '.\artifacts\ProgramDock-framework-dependent\*' -DestinationPath $frameworkZip -CompressionLevel Optimal
+
+          $assets = @($selfContainedZip, $frameworkZip)
+          $checksums = foreach ($asset in $assets) {
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $asset).Hash
+            "$hash  $(Split-Path -Leaf $asset)"
+          }
+          $checksums | Set-Content -LiteralPath (Join-Path $releaseDir 'SHA256SUMS.txt') -Encoding utf8
+          Copy-Item -LiteralPath '.\RELEASE_NOTES.md' -Destination (Join-Path $releaseDir 'RELEASE_NOTES.md')
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ProgramDock ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: artifacts/release/*
